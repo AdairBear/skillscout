@@ -1,0 +1,39 @@
+# Copy to ~/.config/skillscout/profile.yaml and edit. That file stays out of git.
+# Each interest has a weight (0..1+) and keywords used for matching and embeddings.
+interests:
+  - name: Python data tooling
+    weight: 1.0
+    keywords: [pandas, jupyter, data analysis, csv]
+  - name: Web frontend
+    weight: 0.7
+    keywords: [react, nextjs, css, accessibility]
+  - name: Agent safety
+    weight: 0.8
+    keywords: [prompt injection, permissions, guardrails, audit]
+
+# Everything below is optional; these are the defaults.
+scoring:
+  relevance: 0.6        # weight of profile relevance in the final score
+  trust: 0.4            # weight of trust signals
+  overlap_penalty: 0.3  # subtracted for near-duplicates of skills you already have
+
+trust_weights: {installs: 0.25, stars: 0.15, official: 0.2, audit: 0.15, license: 0.1, recency: 0.15}
+
+embed:
+  backend: ollama       # ollama | tfidf (tfidf needs nothing installed)
+  model: nomic-embed-text
+  url: http://127.0.0.1:11434
+
+discovery:
+  max_candidates: 80
+  max_repos: 50
+  code_search_queries: 6   # GitHub code search allows 10 requests/min
+
+vet:
+  top_k: 15             # how many top-scored skills get a static scan
+
+digest:
+  dir: ./digest
+  top_n: 5
+
+installed_skills_dir: ~/.claude/skills
