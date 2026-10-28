@@ -5,7 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 import posixpath
+import re
 import sys
+import unicodedata
 from pathlib import Path
 
 from . import github, http
@@ -14,6 +16,9 @@ from .rules import BINARY_EXT, FAIL_CATEGORIES, HIDDEN, RULES
 from .score import PERMISSIVE
 
 MAX_FILES = 60
+# Format, control, private-use, surrogate, unassigned: the classes that can hide text.
+HIDDEN_CATEGORIES = {"Cf", "Cc", "Co", "Cs", "Cn"}
+NEGATION = re.compile(r"\b(never|don't|do not|must not|avoid|refuse to)\b", re.I)
 MAX_FILE_BYTES = 512 * 1024
 
 
@@ -23,7 +28,9 @@ def slug(skill_id: str) -> str:
 
 def _visible(s: str) -> str:
     """Escape anything non-printable so a report never carries hidden text onward."""
-    return "".join(c if c.isprintable() and ord(c) < 0x2000 else f"\\u{ord(c):04x}" for c in s)
+    return "".join(
+        f"\\u{ord(c):04x}" if unicodedata.category(c) in HIDDEN_CATEGORIES or not c.isprintable() else c for c in s
+    )
 
 
 def scan_text(path: str, text: str) -> list[dict]:
@@ -33,7 +40,12 @@ def scan_text(path: str, text: str) -> list[dict]:
         for m in rx.finditer(text):
             line = text.count("\n", 0, m.start()) + 1
             snippet = lines[line - 1] if line - 1 < len(lines) else m.group(0)
-            findings.append({"rule": rid, "category": cat, "severity": sev, "why": why,
+            before = text[text.rfind("\n", 0, m.start()) + 1: m.start()]
+            # "Never run curl | sh" is a warning, not an instruction. Still worth a human look,
+            # because an attacker can dress an instruction up the same way.
+            negated = sev in ("critical", "high") and cat not in FAIL_CATEGORIES and NEGATION.search(before)
+            findings.append({"rule": rid, "category": cat, "severity": "medium" if negated else sev,
+                             "why": why + (" (negated mention)" if negated else ""),
                              "file": path, "line": line, "snippet": _visible(snippet.strip())[:160]})
             if len([f for f in findings if f["rule"] == rid and f["file"] == path]) >= 5:
                 break

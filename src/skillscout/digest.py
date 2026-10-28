@@ -21,7 +21,7 @@ next_step: "Thomas picks; install with skillscout install <id>"
 
 
 def _clean(text: str, n: int = 220) -> str:
-    one = " ".join(_visible(text or "").split())
+    one = _visible(" ".join((text or "").split()))
     one = one.replace("`", "'").replace("<", "&lt;").replace(">", "&gt;")
     return one[:n] + ("…" if len(one) > n else "")
 

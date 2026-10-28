@@ -18,7 +18,8 @@ _r("PI-IGNORE", "injection", "high",
    r"[^.\n]{0,30}\b(instructions?|rules|prompts?|guidelines|guardrails|restrictions)",
    "asks the agent to drop its rules")
 _r("PI-SECRECY", "injection", "high",
-   r"\b(do not|don't|never)\s+(tell|inform|mention|reveal|show|alert|notify)\b[^.\n]{0,30}\b(the\s+)?(user|human|operator)",
+   # "Don't tell the user they must..." is advice, not concealment, so skip "they/that/you" right after.
+   r"\b(do not|don't|never)\s+(tell|inform|mention|reveal|show|alert|notify)\s+(the\s+)?(user|human|operator)\b(?!\s+(they|that|you)\b)",
    "asks the agent to hide actions from the user")
 _r("PI-AUTHORITY", "injection", "medium",
    r"\b(pre-?authori[sz]ed|already (been )?approved|admin(istrator)? override|system override|you are now|new system prompt|developer mode)\b",
@@ -30,8 +31,10 @@ _r("PI-HTMLCOMMENT", "injection", "high",
    r"<!--(?:(?!-->).){0,400}\b(ignore|instruction|assistant|claude|you must|system prompt)\b(?:(?!-->).){0,400}-->",
    "instructions hidden in an HTML comment", re.I | re.S)
 _r("EXFIL-ASK", "exfiltration", "high",
-   r"\b(send|post|upload|exfiltrate|forward|transmit|paste)\b[^.\n]{0,60}\b(credentials?|secrets?|tokens?|api[ _-]?keys?|passwords?"
-   r"|env(ironment)? variables|\.env\b|ssh keys?|cookies|private keys?)",
+   # Needs a secret AND a destination; "POST /v1/... token" API docs must not match.
+   r"\b(send|upload|exfiltrate|forward|transmit|paste|email)\b[^.\n]{0,60}\b(credentials?|secrets?|tokens?|api[ _-]?keys?|passwords?"
+   r"|env(ironment)? variables|\.env\b|ssh keys?|cookies|private keys?)\b[^.\n]{0,60}\bto\s+(https?://|[\w.+-]+@|"
+   r"(a|an|the|this|our|my)\s+(url|server|webhook|endpoint|email|address|channel|gist|pastebin|discord|telegram))",
    "asks to send secrets somewhere")
 _r("SENSITIVE-READ", "exfiltration", "medium",
    r"~/\.ssh|\bid_(rsa|ed25519)\b|\.aws/credentials|\.netrc\b|\bsecurity find-generic-password|/etc/passwd|\.claude/\.credentials",
